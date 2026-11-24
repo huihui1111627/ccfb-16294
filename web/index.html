@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>族谱逻辑规则引擎 · Zupu Datalog Console</title>
+<style>
+:root{
+  --bg:#f6f3ec; --panel:#fffdf8; --ink:#25211a; --muted:#756d5f; --line:#e3dccb;
+  --brand:#7a3e2b; --brand2:#b56a3f; --gold:#c79a3a; --green:#2f7d4f; --red:#b3372f;
+  --blue:#315f9e; --purple:#7651a8; --shadow:0 10px 30px rgba(74,55,28,.10);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 10% -10%,#fff8e8 0,var(--bg) 42%);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+header{padding:22px 28px 16px;border-bottom:1px solid var(--line);background:rgba(255,253,248,.86);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20}
+.title-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.seal{width:42px;height:42px;border-radius:10px;background:linear-gradient(145deg,#8f442d,#5d2418);color:#ffe6ad;display:grid;place-items:center;font-size:22px;box-shadow:var(--shadow)}
+h1{font-size:21px;margin:0;letter-spacing:.04em} .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.header-controls{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+select,input,button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:8px 10px;outline:none}
+select:focus,input:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(181,106,63,.14)}
+button{cursor:pointer;background:linear-gradient(#8d4a31,#743722);color:#fff8e8;border-color:#63301f;font-weight:650;box-shadow:0 2px 8px rgba(122,62,43,.18)}
+button.secondary{background:#fff;color:var(--brand);border-color:#d8c7a4;box-shadow:none} button:disabled{opacity:.55;cursor:wait}
+nav.tabs{display:flex;gap:6px;padding:12px 28px 0;flex-wrap:wrap}
+.tab{padding:9px 14px;border:1px solid transparent;border-bottom:0;border-radius:10px 10px 0 0;background:transparent;color:var(--muted);cursor:pointer;font-weight:650}
+.tab.active{background:var(--panel);border-color:var(--line);color:var(--brand);box-shadow:0 -4px 14px rgba(74,55,28,.05)}
+main{padding:18px 28px 60px;max-width:1500px;margin:0 auto}.page{display:none}.page.active{display:block}
+.grid{display:grid;gap:14px}.kpis{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px}.card h2{margin:0 0 12px;font-size:16px}.card h3{margin:14px 0 8px;font-size:14px}.hint{color:var(--muted);font-size:12.5px}
+.kpi .v{font-size:25px;font-weight:800;letter-spacing:-.02em}.kpi .l{color:var(--muted);font-size:12.5px}.kpi .extra{color:var(--brand2);font-size:12px;margin-top:3px}
+.two{grid-template-columns:minmax(360px,.9fr) minmax(520px,1.4fr);align-items:start}.wide{grid-column:1/-1}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}th{position:sticky;top:0;background:#f3ecdc;z-index:1;font-size:12px;color:#5e5546}tr:last-child td{border-bottom:0}tr.clickable{cursor:pointer}tr.clickable:hover{background:#fbf2df}.num{text-align:right;font-variant-numeric:tabular-nums}
+code,.mono{font-family:var(--mono);font-size:12px} .ruletext{white-space:normal;min-width:360px;color:#40382c}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:700;border:1px solid transparent}.b-rule{background:#f6e6d8;color:#7a3e2b}.b-base{background:#e9efe8;color:#2f6b46}.b-neg{background:#f9e1de;color:var(--red)}.b-agg{background:#eee5fa;color:var(--purple)}.b-ok{background:#dff2e6;color:var(--green)}.b-warn{background:#fff1cf;color:#8a6112}
+.graph-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:linear-gradient(#fffdf8,#fbf6ea)}svg{display:block;min-width:100%}.g-node{cursor:pointer}.g-node rect{stroke-width:1.2}.g-node.rule rect{fill:#fff2df;stroke:#cf9b65}.g-node.base rect{fill:#eef5ec;stroke:#91b58e}.g-node.selected rect{stroke:var(--brand);stroke-width:3}.g-node text{font-size:12px;fill:#2f291f;font-weight:700}.g-node .small{font-size:10.5px;fill:var(--muted);font-weight:500}
+.edge{fill:none;stroke-width:1.7}.edge.positive{stroke:#9a8d76}.edge.negated{stroke:var(--red);stroke-dasharray:6 4}.edge.aggregate{stroke:var(--purple);stroke-dasharray:2 4}.edge-label{font-size:10px;fill:#8a7d68}.layer-bg{fill:#f1e8d5;opacity:.45}.layer-title{font-size:12px;font-weight:800;fill:#8a6a35}
+.bars{height:260px;display:flex;align-items:flex-end;gap:5px;padding:12px 8px 0;overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}.bar-col{min-width:34px;flex:1 1 34px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}.bar{width:70%;min-height:2px;border-radius:6px 6px 0 0;background:linear-gradient(#d99a5b,#8f4a2d);transition:height .2s}.bar.zero{background:#d8d0bf}.bar-val{font-size:10px;color:#5e5546;margin-bottom:3px}.bar-x{font-size:10px;color:var(--muted);margin-top:5px;transform:rotate(-35deg);white-space:nowrap;height:42px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px;font-size:12px}.chip button{all:unset;cursor:pointer;margin-left:5px;color:var(--red)}
+.query-form{display:grid;grid-template-columns:220px 1fr auto auto;gap:8px;align-items:center}.query-form input{width:100%}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.fact-list{max-height:430px;overflow:auto}.fact-row{display:flex;justify-content:space-between;gap:8px;padding:7px 9px;border-bottom:1px solid var(--line);cursor:pointer}.fact-row:hover{background:#fbf2df}.fact-args{font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proof{max-height:72vh;overflow:auto;padding:8px}.proof ul{list-style:none;padding-left:22px;margin:6px 0 0;position:relative}.proof li{position:relative;margin:7px 0}.proof ul::before{content:"";position:absolute;left:8px;top:0;bottom:8px;border-left:1px dashed #c9bda4}.pnode{border:1px solid var(--line);border-left-width:4px;border-radius:10px;background:#fff;padding:8px 10px;display:inline-block;max-width:100%}.pnode.fact{border-left-color:var(--green)}.pnode.rule{border-left-color:var(--brand)}.pnode.negation{border-left-color:var(--red)}.pnode.test,.pnode.let{border-left-color:var(--blue)}.pnode.aggregate{border-left-color:var(--purple)}.pnode.note{border-left-color:#aaa}.p-label{font-weight:750}.p-detail{color:var(--muted);font-size:12px;margin-top:2px}.pnode code{white-space:normal}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.notice{padding:10px 12px;border-radius:10px;background:#f7ecd7;border:1px solid #e2c98f;color:#6d4d12;margin:10px 0}.error{background:#fbe4e1;border-color:#dfa19a;color:#81231c}.okbox{background:#e2f3e8;border-color:#9bcfb1;color:#175c36}
+.footer{color:var(--muted);font-size:12px;text-align:center;padding:24px}
+@media(max-width:1000px){.two,.result-grid{grid-template-columns:1fr}.query-form{grid-template-columns:1fr 1fr}.query-form select{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header>
+  <div class="title-row">
+    <div class="seal">谱</div>
+    <div><h1>族谱逻辑规则推理引擎</h1><div class="sub">分层 Datalog · 半朴素增量求值 · 否定/聚合分层 · 推导树回放 · 固定种子对照</div></div>
+    <div class="header-controls">
+      <select id="rulesetSelect" title="规则集"></select>
+      <button id="reloadBtn" class="secondary">重新求值</button>
+    </div>
+  </div>
+</header>
+<nav class="tabs">
+  <div class="tab active" data-page="graph">依赖图与分层</div>
+  <div class="tab" data-page="iter">迭代新事实</div>
+  <div class="tab" data-page="rules">规则执行统计</div>
+  <div class="tab" data-page="query">索引查询 / 推导树</div>
+  <div class="tab" data-page="verify">朴素全量对照</div>
+</nav>
+<main>
+  <section id="page-graph" class="page active">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two">
+      <div class="card"><h2>规则依赖图</h2><div class="hint">实线=正依赖，红色虚线=否定，紫色点划线=聚合。点击规则节点查看统计。</div><div id="graph" class="graph-scroll" style="margin-top:10px"></div></div>
+      <div class="card"><h2>选中规则</h2><div id="ruleDetail" class="hint">点击图中规则节点或“规则执行统计”表中的行。</div></div>
+    </div>
+  </section>
+  <section id="page-iter" class="page">
+    <div class="card"><h2>每轮新推出的事实数</h2><div class="hint">同一分层内，第 1 轮从空 IDB 启动；后续轮次只驱动上一轮 delta。悬停柱条查看明细。</div><div id="iterChart" class="bars" style="margin-top:12px"></div></div>
+    <div class="card" style="margin-top:14px"><h2>迭代明细</h2><div id="iterTable" class="table-wrap"></div></div>
+  </section>
+  <section id="page-rules" class="page">
+    <div class="card"><h2>各规则执行次数、连接工作量与耗时</h2><div class="hint">候选连接 = “已有变量绑定 × 访问到的候选事实”次数；这是半朴素与朴素对照使用的主要连接工作量口径。</div><div id="ruleTable" class="table-wrap" style="margin-top:12px"></div></div>
+  </section>
+  <section id="page-query" class="page">
+    <div class="card">
+      <h2>关系查询与任意参数索引</h2>
+      <div class="query-form">
+        <select id="predSelect"></select>
+        <input id="argsInput" value='[]' placeholder='JSON 参数，例如 ["p0000123"]；null 表示不过滤' />
+        <button id="queryBtn">索引查询</button>
+        <button id="sampleBtn" class="secondary">看样例</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <span class="hint">新建复合索引列：</span>
+        <input id="indexCols" value="0,1" style="width:110px" />
+        <button id="createIndexBtn" class="secondary">按参数位置建索引</button>
+        <span class="hint">已有索引：</span><div id="indexChips" class="chips"></div>
+      </div>
+      <div id="queryPlan" class="hint" style="margin-top:10px"></div>
+    </div>
+    <div class="result-grid" style="margin-top:14px">
+      <div class="card"><h2>查询结果 / 样例</h2><div id="factList" class="fact-list"><div class="hint">选择谓词后点“看样例”，或输入 JSON 参数查询。</div></div></div>
+      <div class="card"><h2>结论推导树</h2><div id="proof" class="proof"><div class="hint">点击左侧任一行的“树”。基础事实是叶节点；规则节点可递归展开到原始家族记录。</div></div></div>
+    </div>
+  </section>
+  <section id="page-verify" class="page">
+    <div class="card">
+      <h2>与朴素求值器逐条对照</h2>
+      <div class="hint">朴素求值器在每一轮对所有关系做完整重算，直到没有新事实。两侧逐谓词比较编码后的完整事实集合。</div>
+      <div style="display:flex;gap:10px;margin:14px 0;align-items:center;flex-wrap:wrap">
+        <select id="verifyRuleset"></select>
+        <button id="verifyBtn">运行当前数据规模对照</button>
+        <span id="verifyStatus" class="hint"></span>
+      </div>
+      <div id="verifyResult"></div>
+    </div>
+  </section>
+</main>
+<div class="footer">Zupu engine · 数据与随机规则均由固定种子生成 · 无前端外部依赖</div>
+<script>
+const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+let overview=null, graph=null, rulesets=[], activeRuleId=null, lastRows=[], lastPred=null;
+function fmt(n){return (n??0).toLocaleString('zh-CN')}
+function ms(v){return (v??0).toFixed(2)+' ms'}
+async function api(path,opts){const r=await fetch(path,opts); const data=await r.json(); if(!r.ok) throw new Error(data.error||r.statusText); return data}
+function post(path,body){return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+function valText(v){if(v===null||v===undefined)return 'null'; if(typeof v==='string')return v; return JSON.stringify(v)}
+function argsText(a){return '('+a.map(valText).join(', ')+')'}
+$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));$$('.page').forEach(x=>x.classList.remove('active'));t.classList.add('active');$('#page-'+t.dataset.page).classList.add('active'); if(t.dataset.page==='graph') setTimeout(drawGraph,50)})
+
+async function init(){
+  rulesets=await api('/api/rule-sets');
+  const opts=rulesets.map(r=>`<option value="${r.id}" ${r.active?'selected':''}>${r.name} · ${r.id}</option>`).join('');
+  $('#rulesetSelect').innerHTML=opts; $('#verifyRuleset').innerHTML=opts;
+  $('#rulesetSelect').onchange=async e=>{ await activate(e.target.value)};
+  $('#reloadBtn').onclick=()=>activate($('#rulesetSelect').value);
+  $('#verifyRuleset').value=$('#rulesetSelect').value;
+  await loadOverview();
+  bindQuery(); bindVerify();
+}
+async function activate(id){
+  $('#reloadBtn').disabled=true; $('#reloadBtn').textContent='求值中…';
+  try{ await post('/api/activate',{ruleSetId:id}); await loadOverview(); }
+  catch(e){alert(e.message)} finally{$('#reloadBtn').disabled=false;$('#reloadBtn').textContent='重新求值'}
+}
+async function loadOverview(){
+  overview=await api('/api/overview');
+  $('#rulesetSelect').value=overview.activeId; $('#verifyRuleset').value=overview.activeId;
+  renderKPIs(); renderPredicates(); renderIndexes(); renderIterations(); renderRules();
+  lastRows=[]; lastPred=null;
+  $('#factList').innerHTML='<div class="hint">选择谓词后点“看样例”，或输入 JSON 参数查询。</div>';
+  $('#proof').innerHTML='<div class="hint">点击左侧任一行的“树”。基础事实是叶节点；规则节点可递归展开到原始家族记录。</div>';
+  graph=await api('/api/graph'); drawGraph();
+  const cached=overview.verifyCached?.[overview.activeId]; if(cached) renderVerify(cached);
+}
+function renderKPIs(){
+  const r=overview.report, f=overview.family;
+  const cards=[
+    ['家族人数',fmt(f.people),'种子 '+f.seed],
+    ['基础事实',fmt(r.baseFacts),'父子/婚配/过继/迁居等'],
+    ['推出事实',fmt(r.derivedFacts),'总事实 '+fmt(r.totalFacts)],
+    ['分层数',fmt(overview.report.layers.length),'谓词依赖 SCC 分层'],
+    ['半朴素耗时',ms(r.durationMs),'规则耗时合计 '+ms(r.totals.durationMs)],
+    ['候选连接',fmt(r.totals.candidateJoins),'规则执行 '+fmt(r.totals.executions)+' 次'],
+  ];
+  $('#kpis').innerHTML=cards.map(c=>`<div class="card kpi"><div class="v">${c[1]}</div><div class="l">${c[0]}</div><div class="extra">${c[2]}</div></div>`).join('');
+}
+function renderPredicates(){
+  const counts=overview.report.predicateCounts;
+  const preds=Object.keys(overview.predicates).sort();
+  $('#predSelect').innerHTML=preds.map(p=>`<option value="${p}">${p}/${overview.predicates[p]} · ${fmt(counts[p]||0)}</option>`).join('');
+  $('#predSelect').onchange=resetQueryArgs;
+  resetQueryArgs();
+}
+function resetQueryArgs(){
+  if(!overview) return;
+  const p=$('#predSelect').value, arity=overview.predicates[p]||1;
+  $('#argsInput').value=JSON.stringify(Array(Math.max(0,arity)).fill(null));
+  $('#indexCols').value=arity>=2?'0,1':'0';
+  $('#queryPlan').textContent='参数中的 null 表示该位置不绑定；直接查询会返回前 200 条预览。';
+}
+function renderIndexes(){
+  const idx=overview.indexes||{}; let html='';
+  for(const [p,list] of Object.entries(idx)) for(const cols of list) html+=`<span class="chip">${p}(${cols.join(',')})</span>`;
+  $('#indexChips').innerHTML=html||'<span class="hint">暂无额外索引；查询时会按绑定参数自动建复合索引。</span>';
+}
+function renderIterations(){
+  const its=overview.report.iterations; const max=Math.max(1,...its.map(x=>x.newTotal));
+  $('#iterChart').innerHTML=its.map((it,i)=>{
+    const h=Math.max(it.newTotal?4:2,it.newTotal/max*230);
+    const detail=Object.entries(it.newByPredicate||{}).map(([p,n])=>`${p}:${fmt(n)}`).join('\n');
+    return `<div class="bar-col" title="L${it.layer} R${it.round}\n${it.label}\n新增 ${fmt(it.newTotal)}\n耗时 ${ms(it.durationMs)}\n${detail}">
+      <div class="bar-val">${it.newTotal?fmt(it.newTotal):''}</div><div class="bar ${it.newTotal?'':'zero'}" style="height:${h}px"></div><div class="bar-x">L${it.layer}·R${it.round}</div></div>`}).join('');
+  $('#iterTable').innerHTML=`<table><thead><tr><th>分层</th><th>轮次</th><th>模式</th><th class="num">新事实</th><th>各谓词新增</th><th class="num">耗时</th></tr></thead><tbody>`+
+   its.map(it=>`<tr><td>${it.layer}</td><td>${it.round}</td><td><span class="badge b-rule">${it.label.includes('delta')?'delta':it.label.includes('initial')?'initial':'full'}</span></td><td class="num">${fmt(it.newTotal)}</td><td class="ruletext">${Object.entries(it.newByPredicate||{}).map(([p,n])=>`<span class="chip">${p} +${fmt(n)}</span>`).join(' ')}</td><td class="num">${ms(it.durationMs)}</td></tr>`).join('')+`</tbody></table>`;
+}
+function renderRules(){
+  const rs=[...overview.report.ruleStats].sort((a,b)=>b.candidateJoins-a.candidateJoins);
+  $('#ruleTable').innerHTML=`<table><thead><tr><th>规则</th><th>头/层</th><th class="num">执行</th><th class="num">候选连接</th><th class="num">匹配</th><th class="num">推出/新增</th><th class="num">总耗时</th><th class="num">平均</th></tr></thead><tbody>`+
+  rs.map(s=>`<tr class="clickable" data-rule="${s.ruleId}"><td><span class="badge b-rule">${s.ruleId}</span></td><td>${s.headPredicate}<br><span class="hint">L${s.layer}</span></td><td class="num">${fmt(s.executions)}</td><td class="num">${fmt(s.candidateJoins)}</td><td class="num">${fmt(s.matchedJoins)}</td><td class="num">${fmt(s.derivations)} / ${fmt(s.newFacts)}</td><td class="num">${ms(s.durationMs)}</td><td class="num">${s.executions?ms(s.durationMs/s.executions):''}</td></tr>
+  <tr class="rule-detail-row" data-detail="${s.ruleId}" style="display:none"><td></td><td colspan="7" class="ruletext"><code>${escapeHtml(s.ruleText)}</code></td></tr>`).join('')+`</tbody></table>`;
+  $$('tr[data-rule]').forEach(tr=>tr.onclick=()=>{const d=document.querySelector(`tr[data-detail="${tr.dataset.rule}"]`); d.style.display=d.style.display==='none'?'table-row':'none'; showRuleDetail(tr.dataset.rule)});
+}
+function showRuleDetail(id){
+  const s=overview.report.ruleStats.find(x=>x.ruleId===id); activeRuleId=id; drawGraph();
+  $('#ruleDetail').innerHTML=`<div><span class="badge b-rule">${s.ruleId}</span> <b>${s.headPredicate}</b> · 第 ${s.layer} 层</div>
+  <pre class="ruletext" style="white-space:pre-wrap;background:#f6efdf;padding:10px;border-radius:10px">${escapeHtml(s.ruleText)}</pre>
+  <div class="chips"><span class="chip">执行 ${fmt(s.executions)}</span><span class="chip">候选连接 ${fmt(s.candidateJoins)}</span><span class="chip">匹配 ${fmt(s.matchedJoins)}</span><span class="chip">新增 ${fmt(s.newFacts)}</span><span class="chip">耗时 ${ms(s.durationMs)}</span></div>`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function drawGraph(){
+  if(!graph) return; const host=$('#graph'); host.innerHTML='';
+  const layers=Math.max(...graph.nodes.map(n=>n.layer))+1;
+  const byLayer=Array.from({length:layers},()=>[]); graph.nodes.forEach(n=>byLayer[n.layer].push(n));
+  byLayer.forEach(ns=>ns.sort((a,b)=>a.id.localeCompare(b.id)));
+  const NW=230, NH=54, XG=70, YG=18, pad=34, top=42;
+  const pos={}; let maxRows=1;
+  byLayer.forEach((ns,l)=>{maxRows=Math.max(maxRows,ns.length); ns.forEach((n,i)=>{pos[n.id]={x:pad+l*(NW+XG),y:top+i*(NH+YG),w:NW,h:NH}})});
+  const W=pad*2+layers*NW+(layers-1)*XG, H=top+24+maxRows*(NH+YG);
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs'); defs.innerHTML=`<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 z" fill="#9a8d76"/></marker><marker id="arrowRed" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#b3372f"/></marker><marker id="arrowPurple" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#7651a8"/></marker>`; svg.appendChild(defs);
+  for(let l=0;l<layers;l++){const rect=el('rect',{x:12+l*(NW+XG),y:12,width:NW+28,height:H-30,rx:16,class:'layer-bg'});svg.appendChild(rect);const t=el('text',{x:28+l*(NW+XG),y:30,class:'layer-title'});t.textContent=`第 ${l} 层`;svg.appendChild(t)}
+  graph.edges.forEach(e=>{
+    const a=pos[e.from],b=pos[e.to]; if(!a||!b)return; let d,labelX,labelY;
+    if(e.from===e.to){const x=a.x+a.w-8,y=a.y+a.h/2;d=`M${x},${y} C${x+55},${y-55} ${x+55},${y+55} ${x+2},${y+8}`;labelX=x+34;labelY=y-28}
+    else {const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,mx=(x1+x2)/2;d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;labelX=mx;labelY=(y1+y2)/2-4}
+    const path=el('path',{d,class:`edge ${e.kind}`,'marker-end':`url(#${e.kind==='negated'?'arrowRed':e.kind==='aggregate'?'arrowPurple':'arrow'})`});svg.appendChild(path);
+    if(e.label){const tx=el('text',{x:labelX,y:labelY,class:'edge-label','text-anchor':'middle'});tx.textContent=e.label;svg.appendChild(tx)}
+  });
+  graph.nodes.forEach(n=>{
+    const p=pos[n.id]; const g=el('g',{class:`g-node ${n.kind} ${activeRuleId===n.id?'selected':''}`,transform:`translate(${p.x},${p.y})`});
+    const rect=el('rect',{width:p.w,height:p.h,rx:11});g.appendChild(rect);
+    const t=el('text',{x:12,y:22});t.textContent=n.label;g.appendChild(t);
+    const s=el('text',{x:12,y:40,class:'small'});s.textContent=n.kind==='base'?'EDB 基础谓词':'规则节点 · 点击查看';g.appendChild(s);
+    const title=el('title',{});title.textContent=n.subtitle||n.label;g.appendChild(title);
+    g.onclick=()=>{if(n.ruleId){document.querySelector('.tab[data-page="rules"]').click(); setTimeout(()=>showRuleDetail(n.ruleId),80)}};
+    svg.appendChild(g);
+  });
+  host.appendChild(svg);
+}
+function el(name,attrs){const n=document.createElementNS('http://www.w3.org/2000/svg',name);for(const[k,v]of Object.entries(attrs||{}))n.setAttribute(k,v);return n}
+
+function bindQuery(){
+  $('#sampleBtn').onclick=loadSample; $('#queryBtn').onclick=runQuery;
+  $('#createIndexBtn').onclick=createIndex;
+}
+async function loadSample(){
+  const pred=$('#predSelect').value; lastPred=pred;
+  const data=await api(`/api/facts?pred=${encodeURIComponent(pred)}&limit=80`); lastRows=data.rows;
+  $('#queryPlan').textContent=`样例 ${data.rows.length} / 共 ${fmt(data.total)} 条（地图顺序）`;
+  renderFactList(data.rows);
+}
+async function runQuery(){
+  const pred=$('#predSelect').value; let args;
+  try{args=JSON.parse($('#argsInput').value||'[]')}catch(e){$('#queryPlan').innerHTML=`<span style="color:var(--red)">参数必须是 JSON 数组：${escapeHtml(e.message)}</span>`;return}
+  try{
+    const data=await post('/api/query',{predicate:pred,args,limit:200}); lastPred=pred;lastRows=data.rows;
+    $('#queryPlan').innerHTML=`访问路径：<b>${data.plan.access==='index'?'复合索引精确查询':'全关系扫描'}</b>；索引列 [${(data.plan.indexColumns||[]).join(',')}]；检查候选 ${fmt(data.plan.examined)}；匹配 ${fmt(data.totalMatched)}，预览 ${fmt(data.count)} 条。${data.truncated?'<b>结果较多，仅返回前 200 条；请绑定更多参数缩小结果。</b>':''}`;
+    renderFactList(data.rows); renderIndexes();
+  }catch(e){$('#queryPlan').innerHTML=`<span style="color:var(--red)">${escapeHtml(e.message)}</span>`}
+}
+async function createIndex(){
+  const pred=$('#predSelect').value; const columns=$('#indexCols').value.split(',').map(x=>parseInt(x.trim(),10)).filter(Number.isInteger);
+  try{ await post('/api/indexes',{predicate:pred,columns}); renderIndexes(); }catch(e){alert(e.message)}
+}
+function renderFactList(rows){
+  if(!rows.length){$('#factList').innerHTML='<div class="hint">没有匹配事实。</div>';return}
+  $('#factList').innerHTML=rows.map((r,i)=>`<div class="fact-row"><span class="fact-args" title="${escapeHtml(argsText(r))}">${escapeHtml(argsText(r))}</span><button class="secondary" data-proof="${i}">树</button></div>`).join('');
+  $$('[data-proof]').forEach(b=>b.onclick=()=>showProof(lastPred,lastRows[parseInt(b.dataset.proof)]));
+}
+async function showProof(pred,row){
+  $('#proof').innerHTML='<span class="hint">正在回放推导树…</span>';
+  try{const p=await api(`/api/proof?pred=${encodeURIComponent(pred)}&args=${encodeURIComponent(JSON.stringify(row))}&aggLimit=100`);$('#proof').innerHTML=renderProof(p)}
+  catch(e){$('#proof').innerHTML=`<div class="notice error">${escapeHtml(e.message)}</div>`}
+}
+function renderProof(n){
+  const badge={fact:'事实',rule:'规则',negation:'否定',test:'比较',let:'计算',aggregate:'聚合',note:'说明'}[n.kind]||n.kind;
+  return `<div class="pnode ${n.kind}"><div class="p-label"><span class="badge b-${n.kind==='rule'?'rule':n.kind==='aggregate'?'agg':n.kind==='negation'?'neg':'base'}">${badge}</span> ${escapeHtml(n.label||'')}</div>${n.detail?`<div class="p-detail">${escapeHtml(n.detail)}</div>`:''}${n.ruleText?`<div class="p-detail"><code>${escapeHtml(n.ruleText)}</code></div>`:''}</div>${n.children&&n.children.length?`<ul>${n.children.map(c=>`<li>${renderProof(c)}</li>`).join('')}</ul>`:''}`;
+}
+async function bindVerify(){
+  $('#verifyBtn').onclick=async()=>{
+    const id=$('#verifyRuleset').value; const btn=$('#verifyBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> 全量重算中…';$('#verifyStatus').textContent='大规模数据可能需要数十秒到数分钟，请求不会中断。';
+    try{const r=await api(`/api/verify?set=${encodeURIComponent(id)}&refresh=1`);renderVerify(r)}
+    catch(e){$('#verifyResult').innerHTML=`<div class="notice error">${escapeHtml(e.message)}</div>`}
+    finally{btn.disabled=false;btn.textContent='运行当前数据规模对照';$('#verifyStatus').textContent=''}
+  }
+}
+function renderVerify(r){
+  const cls=r.ok?'okbox':'error';
+  const diffs=(r.diffs||[]).map(d=>`<tr><td>${d.predicate}</td><td class="num">${fmt(d.semiCount)}</td><td class="num">${fmt(d.naiveCount)}</td><td>${(d.missingInSemi||[]).length} / ${(d.extraInSemi||[]).length}</td></tr>`).join('');
+  $('#verifyResult').innerHTML=`<div class="notice ${cls}"><b>${r.ok?'✅ 逐条一致':'❌ 发现差异'}</b>：${r.predicateCount} 个谓词，比较 ${fmt(r.comparedFactCount)} 条事实。半朴素候选连接 ${fmt(r.semiCandidateJoins)}，朴素 ${fmt(r.naiveCandidateJoins)}，连接工作量加速比 <b>${r.joinSpeedup.toFixed(2)}×</b>。</div>
+  <div class="table-wrap"><table><thead><tr><th>求值方式</th><th class="num">耗时</th><th class="num">规则执行</th><th class="num">候选连接</th><th class="num">索引查找</th><th class="num">全扫描</th><th class="num">推出次数</th></tr></thead><tbody>
+  <tr><td>半朴素 delta</td><td class="num">${ms(r.semi.durationMs)}</td><td class="num">${fmt(r.semi.totals.executions)}</td><td class="num">${fmt(r.semi.totals.candidateJoins)}</td><td class="num">${fmt(r.semi.totals.indexLookups)}</td><td class="num">${fmt(r.semi.totals.fullScans)}</td><td class="num">${fmt(r.semi.totals.derivations)}</td></tr>
+  <tr><td>每轮全量重算</td><td class="num">${ms(r.naive.durationMs)}</td><td class="num">${fmt(r.naive.totals.executions)}</td><td class="num">${fmt(r.naive.totals.candidateJoins)}</td><td class="num">${fmt(r.naive.totals.indexLookups)}</td><td class="num">${fmt(r.naive.totals.fullScans)}</td><td class="num">${fmt(r.naive.totals.derivations)}</td></tr>
+  </tbody></table></div>
+  ${diffs?`<h3>差异样本</h3><div class="table-wrap"><table><thead><tr><th>谓词</th><th>半朴素</th><th>朴素</th><th>缺/多样本</th></tr></thead><tbody>${diffs}</tbody></table></div>`:''}`;
+}
+init().catch(e=>{document.body.insertAdjacentHTML('afterbegin',`<div class="notice error">初始化失败: ${escapeHtml(e.message)}</div>`)});
+</script>
+</body></html>
